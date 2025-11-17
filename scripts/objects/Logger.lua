@@ -3,7 +3,9 @@ local Logger, super = Class(Object)
 function Logger:init()
 	super.init(self, 0, 0)
 	self.layer = 10000000 - 2
+
 	self.history = {}
+	self.wrapped_history = {}
 
 	self.font_size = 16
     self.font_name = "main_mono"
@@ -16,7 +18,7 @@ function Logger:init()
 	self.alpha = 0
 
 	self.timer = 0
-	self.old_history_length = #self.history
+	self.timer_max = 100 -- TODO: read lib config
 end
 
 function Logger:update()
@@ -26,25 +28,24 @@ function Logger:update()
 	else
 		self.alpha = 1
 	end
-
-	if self.old_history_length ~= #self.history then
-		if #self.history > self.old_history_length then
-			self.timer = 100
-		end
-		self.old_history_length = #self.history
-	end
 end
 
 function Logger:draw()
 	love.graphics.setColor(0, 0, 0, 0.5*self.alpha)
 	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 
-	Draw.setColor(1, 1, 1, self.alpha)
 	love.graphics.setFont(self.font)
 	local offset = 0
-	local wrapped_history = self:getWrappedHistory()
-	for i=#wrapped_history, 1, -1 do
-		local text = wrapped_history[i]
+	for i=#self.wrapped_history, 1, -1 do
+		local color = {1, 1, 1}
+		local text = self.wrapped_history[i]
+		if type(text) == "table" then
+			color, text = unpack(text)
+		end
+
+		local r, g, b = unpack(color)
+		Draw.setColor(r, g, b, self.alpha)
+
 		love.graphics.printf(text, 0, (self.height-self.font_size)-offset, self.width)
 		
 		offset = offset + self.font_size
@@ -56,24 +57,44 @@ end
 function Logger:getWrappedHistory()
 	local whistory = {}
 	for i,text in ipairs(self.history) do
-		local _, lines = self.font:getWrap(text, self.width)
-		for i,line in ipairs(lines) do
-			table.insert(whistory, line)
+		if type(text) == "table" then
+			local color, text = unpack(text)
+			local _, lines = self.font:getWrap(text, self.width)
+			for i,line in ipairs(lines) do
+				table.insert(whistory, {color, line})
+			end
+		else
+			local _, lines = self.font:getWrap(text, self.width)
+			for i,line in ipairs(lines) do
+				table.insert(whistory, line)
+			end
 		end
 	end
 	return whistory
 end
 
-function Logger.log(msg, origin)
+function Logger.log(msg, origin, color)
 	local prefix = "[Multiplayer]"
 	if origin then
 		prefix = "[Multiplayer "..StringUtils.titleCase(origin).."]"
 	end
-	local log = prefix.." "..msg
+	local log_msg = prefix.." "..msg
 
-	print(log)
-	Kristal.Console:push(log)
-	table.insert(Game.logger.history, log)
+	print(log_msg)
+	Kristal.Console:push(log_msg)
+	if color then
+		log_msg = {color, log_msg}
+	end
+	Game.logger:addToHistory(log_msg)
+end
+
+function Logger:addToHistory(msg)
+	table.insert(self.history, msg)
+	self.timer = self.timer_max
+	if #self.history > math.floor(self.height/self.font_size) then
+		table.remove(self.history, 1)
+	end
+	self.wrapped_history = self:getWrappedHistory()
 end
 
 return Logger
