@@ -14,6 +14,7 @@ function Lib:cleanUp()
 
 	createServer = nil
 	createClient = nil
+	log = nil
 	MultiplayerLib = nil
 
 	SOCKET = nil
@@ -32,6 +33,11 @@ function Lib:init()
 end
 
 function Lib:postInit()
+	local l = Logger()
+	Lib.logger = l
+	Game.logger = l
+	Game.stage:addChild(l)
+	log = Game.logger.log
 end
 
 function Lib:unload()
