@@ -43,7 +43,6 @@ function Lib:preUpdate()
 	local markedAsDeadServers = {}
 	for _,client in ipairs(Lib.clients) do
 		if client.dead then
-			print("A client has been marked as dead.")
 			table.insert(markedAsDeadClients, client)
 		else
 			client:preUpdate()
@@ -88,5 +87,5 @@ function createClient()
 end
 Lib.createClient = createClient -- to allow Kristal.libCall("createClient") to work
 
-MultiplayerLib = self
+MultiplayerLib = Lib
 return Lib
