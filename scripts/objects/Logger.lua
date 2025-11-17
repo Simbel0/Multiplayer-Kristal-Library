@@ -2,6 +2,8 @@ local Logger, super = Class(Object)
 
 function Logger:init()
 	super.init(self, 0, 0)
+	self.config = Kristal.getLibConfig("multiplayer", "logger")
+
 	self.layer = 10000000 - 2
 
 	self.history = {}
@@ -18,7 +20,7 @@ function Logger:init()
 	self.alpha = 0
 
 	self.timer = 0
-	self.timer_max = 100 -- TODO: read lib config
+	self.timer_max = 60*self.config.max_time
 end
 
 function Logger:update()
@@ -74,29 +76,53 @@ function Logger:getWrappedHistory()
 end
 
 function Logger.log(msg, origin, color)
+	if not Game.logger.config.any then
+		return
+	end
+
 	local prefix = "[Multiplayer]"
 	if origin then
 		prefix = "[Multiplayer "..StringUtils.titleCase(origin).."]"
 	end
 	local log_msg = prefix.." "..msg
 
-	print(log_msg)
-	Kristal.Console:push(log_msg)
+	if Game.logger.config.printToLOVEConsole then
+		print(log_msg)
+	end
+
 	if color then
 		log_msg = {color, log_msg}
 	end
+
+	if Game.logger.config.printToKristalConsole then
+		if type(log_msg) == "table" then
+			Kristal.Console:push("[color:"..ColorUtils.RGBToHex(unpack(log_msg[1])).."]"..log_msg[2])
+		else
+			Kristal.Console:push(log_msg)
+		end
+	end
+
 	Game.logger:addToHistory(log_msg)
 end
 
 function Logger.warn(msg, origin)
+	if not Game.logger.config.warn then
+		return
+	end
 	Logger.log("[WARN] "..msg, origin, {1, 0.9, 0})
 end
 
 function Logger.error(msg, origin)
+	if not Game.logger.config.error then
+		return
+	end
 	Logger.log("[ERROR] "..msg, origin, {1, 0, 0})
 end
 
 function Logger.debug(msg, origin)
+	if not Game.logger.config.debug then
+		return
+	end
 	Logger.log(msg, origin)
 end
 

@@ -6,5 +6,19 @@
 
     "authors": [
         "Simbel"
-    ]
+    ],
+
+    "config": {
+        "logger": {
+            "any": true,   // if false, the logger won't appear at all regardless of the other options
+            "warn": true,  // if false, won't print warnings
+            "error": true, // if false, won't print errors
+            "debug": false, // if false, won't print debug messages
+
+            "printToKristalConsole": false, // Should log messages be printed in the console?
+            "printToLOVEConsole": true, // If a terminal is attached to Kristal, should log messages be printed there?
+
+            "max_time": 5, // How long the logger should stay on screen before fading in seconds
+        }
+    }
 }
