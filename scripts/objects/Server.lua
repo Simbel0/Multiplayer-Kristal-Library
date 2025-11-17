@@ -25,7 +25,7 @@ function Server:init()
 	self.udp:setsockname('*', 44444)
 
 	self.clients = {}
-	self.nextClientID = 0
+	self.nextClientID = 1
 
 	self.serverid = love.math.random(99999)
 
@@ -129,7 +129,7 @@ function Server:close()
 	Logger.log("Closing server!")
 
 	for id,client in pairs(self.clients) do
-		self:disconnectClient(client[id].clientid, "server_closed")
+		self:disconnectClient(client.clientid, "server_closed")
 	end
 
 	self.udp:close()
