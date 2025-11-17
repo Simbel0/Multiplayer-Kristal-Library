@@ -24,6 +24,7 @@ function Logger:init()
 end
 
 function Logger:update()
+	if #self.history == 0 or not self.config.any then return end
 	self.timer = self.timer - DTMULT
 	if self.timer < 0 then
 		self.alpha = Utils.approach(self.alpha, 0, 0.05*DTMULT)
@@ -33,6 +34,8 @@ function Logger:update()
 end
 
 function Logger:draw()
+	if #self.history == 0 or not self.config.any then return end
+
 	love.graphics.setColor(0, 0, 0, 0.5*self.alpha)
 	love.graphics.rectangle("fill", 0, 0, self.width, self.height)
 
@@ -82,7 +85,19 @@ function Logger.log(msg, origin, color)
 
 	local prefix = "[Multiplayer]"
 	if origin then
-		prefix = "[Multiplayer "..StringUtils.titleCase(origin).."]"
+		if not Game.logger.config.shorterPrefix then
+			prefix = "[Multiplayer "..StringUtils.titleCase(origin).."]"
+		else
+			prefix = "["..StringUtils.titleCase(origin).."]"
+		end
+
+		if Game.logger.config.serverClientColors and not color then
+			if origin == "client" then
+				color = {0.4, 0.4, 1}
+			elseif origin == "server" then
+				color = {0.4, 1, 0.4}
+			end
+		end
 	end
 	local log_msg = prefix.." "..msg
 
@@ -102,7 +117,9 @@ function Logger.log(msg, origin, color)
 		end
 	end
 
-	Game.logger:addToHistory(log_msg)
+	if Game.logger.config.printToInGameLogger then
+		Game.logger:addToHistory(log_msg)
+	end
 end
 
 function Logger.warn(msg, origin)
