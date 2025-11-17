@@ -1,7 +1,25 @@
 local Server = Class()
 
+local log, logWarn, logError, logDebug
+function Server:setLoggers()
+	log = function(msg)
+		Logger.log(msg, "server")
+	end
+	logWarn = function(msg)
+		Logger.warn(msg, "server")
+	end
+	logError = function(msg)
+		Logger.error(msg, "server")
+	end
+	logDebug = function(msg)
+		Logger.debug(msg, "server")
+	end
+end
+
 function Server:init()
-	print("Created a server (host)!")
+	self:setLoggers()
+
+	Logger.log("Created a server (host)!")
 	self.udp = SOCKET.udp()
 	self.udp:settimeout(0)
 	self.udp:setsockname('*', 44444)
@@ -41,7 +59,7 @@ function Server:connectClient(clientid, ip, port)
 	self.clients[id] = data
 
 	local packet = string.format("%i %s", self.serverid, "server_connection_approved")
-	print("[Multiplayer Server] Sending packet: \""..packet.."\"")
+	logDebug("Sending packet: \""..packet.."\"")
 	self.udp:sendto(packet, data.ip, data.port)
 	return true
 end
@@ -50,11 +68,11 @@ function Server:disconnectClient(clientid, reason)
 	local id = self:findClientByClientID(clientid)
 	local client = self.clients[id]
 	if not client then
-		print("Tried to disconnect a client ("..clientid..") that doesn't exist.")
+		logError("Tried to disconnect a client ("..clientid..") that doesn't exist.")
 		return
 	end
 	local packet = string.format("%i %s %s", self.serverid, "disconnect", reason)
-	print("[Multiplayer Server] Sending packet: \""..packet.."\"")
+	logDebug("Sending packet: \""..packet.."\"")
 	self.udp:sendto(packet, client.ip, client.port)
 
 	self.clients[id] = nil
@@ -74,22 +92,22 @@ function Server:preUpdate()
 			self.clients[id].timeout_tracker = 0
 		end
 
-		print("[Multiplayer Server] Data received:", entity, cmd, parms)
+		logDebug("Data received:", entity, cmd, parms)
 
 		if cmd == "connect" then
-			print(string.format("[Multiplayer Server] Player %s connected!", entity))
+			log(string.format("Player %s connected!", entity))
 			local succ, msg = self:connectClient(entity, ip, port)
 			if not succ then
-				print("[Multiplayer Server] An error occured during connection: "..msg)
+				logError("An error occured during connection: "..msg)
 			end
 		elseif cmd == "disconnect" then
-			print(string.format("[Multiplayer Server] Player %s left.", entity))
+			log(string.format("Player %s left.", entity))
 			self:disconnectClient(entity, "disconnect_request")
 		else
-			print("unrecognised command:", cmd)
+			logWarn("unrecognised command:", cmd)
 		end
 	elseif ip ~= 'timeout' then
-		error("Unknown network error: "..tostring(ip))
+		logWarn("Unknown network error: "..tostring(ip))
 	end
 
 	for id,client in pairs(self.clients) do
@@ -97,7 +115,7 @@ function Server:preUpdate()
 		self.clients[id].timeout_tracker = client.timeout_tracker + DTMULT
 
 		if timer > 1200 then
-			print(string.format("[Multiplayer Server] Player %s (%s) timeout.", id, client.clientid))
+			log(string.format("Player %s (%s) timeout.", id, client.clientid))
 			self:disconnectClient(client.clientid, "server_declared_timeout")
 		end
 	end
@@ -108,7 +126,7 @@ function Server:postUpdate()
 end
 
 function Server:close()
-	print("Closing server!")
+	Logger.log("Closing server!")
 
 	for id,client in pairs(self.clients) do
 		self:disconnectClient(client[id].clientid, "server_closed")

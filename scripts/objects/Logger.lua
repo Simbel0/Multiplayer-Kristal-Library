@@ -88,6 +88,18 @@ function Logger.log(msg, origin, color)
 	Game.logger:addToHistory(log_msg)
 end
 
+function Logger.warn(msg, origin)
+	Logger.log("[WARN] "..msg, origin, {1, 0.9, 0})
+end
+
+function Logger.error(msg, origin)
+	Logger.log("[ERROR] "..msg, origin, {1, 0, 0})
+end
+
+function Logger.debug(msg, origin)
+	Logger.log(msg, origin)
+end
+
 function Logger:addToHistory(msg)
 	table.insert(self.history, msg)
 	self.timer = self.timer_max

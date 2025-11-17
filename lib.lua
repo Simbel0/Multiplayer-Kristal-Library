@@ -4,7 +4,7 @@ Lib.servers = {}
 Lib.clients = {}
 
 function Lib:cleanUp()
-	print("[Multiplayer] Cleaning up...")
+	log("Cleaning up...")
 	for _,client in ipairs(Lib.clients) do
 		client:close()
 	end
@@ -15,6 +15,9 @@ function Lib:cleanUp()
 	createServer = nil
 	createClient = nil
 	log = nil
+	logWarn = nil
+	logError = nil
+	logDebug = nil
 	MultiplayerLib = nil
 
 	SOCKET = nil
@@ -25,6 +28,15 @@ function Lib:init()
 	SOCKET = require("socket")
 	print("Multiplayer "..(love.math.random()<0.8 and "Library" or "Librarby").." loaded.")
 
+	local l = Logger()
+	Lib.logger = l
+	Game.logger = l
+
+	log = Logger.log
+	logWarn = Logger.warn
+	logError = Logger.error
+	logDebug = Logger.debug
+
 	-- Probably horrible but possibly needed to make sure all networking stuff is gone even if something crashes
 	Utils.hook(Kristal, "errorHandler", function(orig, ...)
 		pcall(self.cleanUp, self) -- Use pcall to make sure an error in the clean up doesn't cause LÖVE to explode
@@ -33,11 +45,7 @@ function Lib:init()
 end
 
 function Lib:postInit()
-	local l = Logger()
-	Lib.logger = l
-	Game.logger = l
-	Game.stage:addChild(l)
-	log = Game.logger.log
+	Game.stage:addChild(Game.logger)
 end
 
 function Lib:unload()

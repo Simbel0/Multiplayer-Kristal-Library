@@ -1,14 +1,32 @@
 local Client = Class()
 
+local log, logWarn, logError, logDebug
+function Client:setLoggers()
+	log = function(msg)
+		Logger.log(msg, "client")
+	end
+	logWarn = function(msg)
+		Logger.warn(msg, "client")
+	end
+	logError = function(msg)
+		Logger.error(msg, "client")
+	end
+	logDebug = function(msg)
+		Logger.debug(msg, "client")
+	end
+end
+
 function Client:init()
-	print("Created a client!")
+	self:setLoggers()
+
+	Logger.log("Created a client!")
 	self.udp = SOCKET.udp()
 	self.udp:settimeout(0)
 	self.udp:setpeername("localhost", 44444)
 
 	self.entity = tostring(love.math.random(9999))
 	local dg = string.format("%s %s", self.entity, 'connect')
-	print("[Multiplayer Client] Sending packet: \""..dg.."\"")
+	logDebug("Sending packet: \""..dg.."\"")
 	self.udp:send(dg)
 
 	self.connection_timeout = 1200
@@ -29,16 +47,16 @@ function Client:preUpdate()
 			if serverid == nil then
 				serverid, cmd, parms = data:match("^(%S*) (%S*)")
 			end
-			print("[Multiplayer Client] Data received:", serverid, cmd, parms)
+			logDebug("Data received:", serverid, cmd, parms)
 
 			if cmd == "server_connection_approved" then
 				self.serverid = serverid
-				print("[Multiplayer Client] Connection was approved by server "..serverid.."!")
+				log("Connection was approved by server "..serverid.."!")
 			elseif cmd == "disconnect" then
 				if serverid == self.serverid then
-					print("[Multiplayer Client] Server has disconnected the client. Reason: "..parms)
+					log("Server has disconnected the client. Reason: "..parms)
 					self:close()
-					return -- needed as udp:receive() goes insane and cause an infinite loop otherwise after closing the socket
+					break -- needed as udp:receive() goes insane and cause an infinite loop otherwise after closing the socket
 				end
 			end
 		end
@@ -53,13 +71,13 @@ function Client:postUpdate()
 			self.connection_retry = self.connection_retry - 1
 
 			if self.connection_retry <= 0 then
-				print("[Multiplayer Client] Connection failure: Timeout.")
+				logWarn("Connection failure: Timeout.")
 				self:close()
 				return
 			end
 
 			local dg = string.format("%s %s", self.entity, 'connect')
-			print("[Multiplayer Client] Sending packet: \""..dg.."\"")
+			logDebug("Sending packet: \""..dg.."\"")
 			self.udp:send(dg)
 		end
 	end
@@ -68,12 +86,12 @@ end
 function Client:send(cmd, ...)
 	local parms = table.concat({...}, " ")
 	local dg = string.format("%s %s %s", self.entity, cmd, parms)
-	print("[Multiplayer Client] Sending packet: \""..dg.."\"")
+	logDebug("Sending packet: \""..dg.."\"")
 	self.udp:send(dg)
 end
 
 function Client:close()
-	print("Closing client!")
+	Logger.log("Closing client!")
 	self.udp:close()
 	self.dead = true
 end
